@@ -57,7 +57,7 @@ function LiveCounter() {
   const [count, setCount] = useState(0);
   useEffect(() => {
     const fetchCount = () => {
-      fetch('http://localhost:3001/api/count')
+      fetch('https://slot-backend-production.up.railway.app')
         .then(r => {
           if (!r.ok) return null;
           return r.json();
@@ -130,7 +130,7 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    fetch('http://localhost:3001/api/status')
+    fetch('https://slot-backend-production.up.railway.app/api/status')
       .then(r => r.json())
       .then(d => {
         setHasPostedToday(d.hasDroppedToday);
@@ -247,7 +247,7 @@ export default function App() {
       playDrop();
       if (navigator.vibrate) navigator.vibrate([20, 50, 20]);
 
-      fetch('http://localhost:3001/api/drop', {
+      fetch('https://slot-backend-production.up.railway.app/api/drop', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ mode, charCount: message.length }),
