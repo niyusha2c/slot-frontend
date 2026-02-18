@@ -409,7 +409,9 @@ export default function App() {
         </div>
       )}
 
-      <footer style={{ ...st.footer, bottom: isMobile ? '12px' : '24px' }}>no trace</footer>
+      <footer style={{ ...st.footer, bottom: isMobile ? '12px' : '24px' }}>
+  <a href="/about" style={st.footerLink}>about</a>
+</footer>
 
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500&display=swap');
@@ -445,4 +447,5 @@ const st = {
   modeBtn: { padding: '8px 18px', background: 'transparent', border: 'none', borderRadius: '18px', fontFamily: '"Outfit", sans-serif', fontSize: '12px', fontWeight: 400, color: '#999', cursor: 'pointer', transition: 'all 0.2s ease' },
   modeBtnActive: { background: '#fff', color: '#000', boxShadow: '0 1px 4px rgba(0,0,0,0.08)' },
   footer: { position: 'absolute', bottom: '24px', left: '0', right: '0', textAlign: 'center', fontSize: '11px', color: '#ddd', fontWeight: 300, pointerEvents: 'none' },
+  footerLink: { color: '#ccc', textDecoration: 'none', fontSize: '11px', fontWeight: 300, pointerEvents: 'auto' },
 };
