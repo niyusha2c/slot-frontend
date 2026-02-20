@@ -57,7 +57,7 @@ function LiveCounter() {
   const [count, setCount] = useState(0);
   useEffect(() => {
     const fetchCount = () => {
-      fetch('https://slot-backend-production.up.railway.app')
+      fetch('https://slot-backend-production.up.railway.app/api/count')
         .then(r => {
           if (!r.ok) return null;
           return r.json();
