@@ -22,6 +22,64 @@ function useDropSound() {
   return play;
 }
 
+function useSpeechRecognition() {
+  const [transcript, setTranscript] = useState('');
+  const [isListening, setIsListening] = useState(false);
+  const recognitionRef = useRef(null);
+
+  useEffect(() => {
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognition) return;
+
+    const recognition = new SpeechRecognition();
+    recognition.continuous = true;
+    recognition.interimResults = true;
+    recognition.lang = 'en-US';
+
+    recognition.onresult = (event) => {
+      let finalTranscript = '';
+      for (let i = 0; i < event.results.length; i++) {
+        finalTranscript += event.results[i][0].transcript;
+      }
+      setTranscript(finalTranscript);
+    };
+
+    recognition.onerror = (event) => {
+      console.error('Speech recognition error:', event.error);
+      setIsListening(false);
+    };
+
+    recognition.onend = () => {
+      setIsListening(false);
+    };
+
+    recognitionRef.current = recognition;
+
+    return () => {
+      if (recognitionRef.current) {
+        recognitionRef.current.stop();
+      }
+    };
+  }, []);
+
+  const startListening = () => {
+    if (recognitionRef.current && !isListening) {
+      setTranscript('');
+      recognitionRef.current.start();
+      setIsListening(true);
+    }
+  };
+
+  const stopListening = () => {
+    if (recognitionRef.current && isListening) {
+      recognitionRef.current.stop();
+      setIsListening(false);
+    }
+  };
+
+  return { transcript, isListening, startListening, stopListening };
+}
+
 function GlobalDrops() {
   const [drops, setDrops] = useState([]);
   useEffect(() => {
@@ -109,6 +167,7 @@ export default function App() {
   const [isNearSlot, setIsNearSlot] = useState(false);
   const [streak, setStreak] = useState(0);
   const [isMobile, setIsMobile] = useState(false);
+  const { transcript, isListening, startListening, stopListening } = useSpeechRecognition();
 
   const [strokes, setStrokes] = useState([]);
   const [currentStroke, setCurrentStroke] = useState([]);
@@ -148,14 +207,15 @@ export default function App() {
   }, []);
 
   const handleClick = (e) => {
-    if (hasPostedToday || isDragging || hasContent) return;
-    if (e.target.closest('[data-controls]')) return;
-    if (mode === 'draw') return;
-    const p = getEventPos(e);
-    setPosition(p);
-    setMessage('');
-    if (mode === 'type') setTimeout(() => textareaRef.current?.focus(), 50);
-  };
+  if (hasPostedToday || isDragging || hasContent) return;
+  if (e.target.closest('[data-controls]')) return;
+  if (mode === 'draw') return;
+  const p = getEventPos(e);
+  setPosition(p);
+  setMessage('');
+  if (mode === 'type') setTimeout(() => textareaRef.current?.focus(), 50);
+  if (mode === 'speak') startListening();
+};
 
   const handleDrawStart = (e) => {
     if (hasPostedToday || isDragging || hasContent) return;
@@ -280,6 +340,12 @@ export default function App() {
     }
   }, [isDragging, onMove, onUp]);
 
+useEffect(() => {
+  if (mode === 'speak' && transcript) {
+    setMessage(transcript);
+  }
+}, [transcript, mode]);
+
   const handleKeyDown = (e) => {
     if (e.key === 'Escape') {
       setPosition(null); setMessage(''); setStrokes([]);
@@ -335,12 +401,12 @@ export default function App() {
       </div>
 
       {!position && !hasPostedToday && strokes.length === 0 && (
-        <p style={st.hint}>
-          {mode === 'type' ? (isMobile ? 'tap anywhere' : 'click anywhere')
-            : mode === 'speak' ? (isMobile ? 'tap anywhere' : 'click anywhere')
-            : 'draw anywhere'}
-        </p>
-      )}
+  <p style={st.hint}>
+    {mode === 'type' ? (isMobile ? 'tap anywhere' : 'click anywhere')
+      : mode === 'speak' ? (isListening ? 'listening...' : (isMobile ? 'tap to speak' : 'click to speak'))
+      : 'draw anywhere'}
+  </p>
+)}
       {hasPostedToday && !dropAnim && <p style={st.hint}>gone</p>}
 
       {pos && !hasPostedToday && (mode === 'type' || mode === 'speak') && (
@@ -374,6 +440,17 @@ export default function App() {
           {hasContent && !isDragging && (
             <span style={st.dragHint}>{isMobile ? 'drag to slot ↑' : 'drag to slot'}</span>
           )}
+          {mode === 'speak' && isListening && (
+  <span style={{ fontSize: '12px', color: '#e74c3c', marginTop: '8px' }}>● recording</span>
+)}
+{mode === 'speak' && !isListening && hasContent && (
+  <button 
+    onClick={(e) => { e.stopPropagation(); startListening(); }}
+    style={{ fontSize: '12px', color: '#999', background: 'none', border: 'none', cursor: 'pointer', marginTop: '8px' }}
+  >
+    tap to continue
+  </button>
+)}
         </div>
       )}
 
