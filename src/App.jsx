@@ -314,11 +314,12 @@ export default function App() {
       }).catch(() => {});
 
       setTimeout(() => {
-        setHasPostedToday(true);
-        setMessage(''); setStrokes([]); setDrawBounds(null);
-        setPosition(null); setDropAnim(null);
-        setStreak(s => s + 1);
-      }, 500);
+  stopListening();
+  setHasPostedToday(true);
+  setMessage(''); setStrokes([]); setDrawBounds(null);
+  setPosition(null); setDropAnim(null);
+  setStreak(s => s + 1);
+}, 500);
     } else {
       setIsDragging(false);
       setIsNearSlot(false);
