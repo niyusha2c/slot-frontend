@@ -25,61 +25,101 @@ function useDropSound() {
 function useSpeechRecognition() {
   const [transcript, setTranscript] = useState('');
   const [isListening, setIsListening] = useState(false);
+  const [isSupported, setIsSupported] = useState(true);
   const recognitionRef = useRef(null);
 
   useEffect(() => {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-    if (!SpeechRecognition) return;
+    
+    if (!SpeechRecognition) {
+      setIsSupported(false);
+      return;
+    }
 
-    const recognition = new SpeechRecognition();
-    recognition.continuous = true;
-    recognition.interimResults = true;
-    recognition.lang = 'en-US';
+    try {
+      const recognition = new SpeechRecognition();
+      recognition.continuous = true;
+      recognition.interimResults = true;
+      recognition.lang = 'en-US';
+      recognition.maxAlternatives = 1;
 
-    recognition.onresult = (event) => {
-      let finalTranscript = '';
-      for (let i = 0; i < event.results.length; i++) {
-        finalTranscript += event.results[i][0].transcript;
-      }
-      setTranscript(finalTranscript);
-    };
+      recognition.onresult = (event) => {
+        let finalTranscript = '';
+        for (let i = 0; i < event.results.length; i++) {
+          finalTranscript += event.results[i][0].transcript;
+        }
+        setTranscript(finalTranscript);
+      };
 
-    recognition.onerror = (event) => {
-      console.error('Speech recognition error:', event.error);
-      setIsListening(false);
-    };
+      recognition.onerror = (event) => {
+        console.error('Speech recognition error:', event.error);
+        if (event.error === 'not-allowed') {
+          setIsSupported(false);
+        }
+        setIsListening(false);
+      };
 
-    recognition.onend = () => {
-      setIsListening(false);
-    };
+      recognition.onend = () => {
+        setIsListening(false);
+      };
 
-    recognitionRef.current = recognition;
+      recognition.onnomatch = () => {
+        console.log('No speech detected');
+      };
+
+      recognitionRef.current = recognition;
+    } catch (e) {
+      console.error('Speech recognition setup failed:', e);
+      setIsSupported(false);
+    }
 
     return () => {
       if (recognitionRef.current) {
-        recognitionRef.current.stop();
+        try {
+          recognitionRef.current.stop();
+        } catch (e) {}
       }
     };
   }, []);
 
   const startListening = () => {
+    if (!isSupported) return false;
+    
     if (recognitionRef.current && !isListening) {
-      setTranscript('');
-      recognitionRef.current.start();
-      setIsListening(true);
+      try {
+        setTranscript('');
+        recognitionRef.current.start();
+        setIsListening(true);
+        return true;
+      } catch (e) {
+        console.error('Failed to start speech recognition:', e);
+        // Safari sometimes throws if recognition is already started
+        try {
+          recognitionRef.current.stop();
+          setTimeout(() => {
+            recognitionRef.current.start();
+            setIsListening(true);
+          }, 100);
+          return true;
+        } catch (e2) {
+          return false;
+        }
+      }
     }
+    return false;
   };
 
   const stopListening = () => {
     if (recognitionRef.current && isListening) {
-      recognitionRef.current.stop();
+      try {
+        recognitionRef.current.stop();
+      } catch (e) {}
       setIsListening(false);
     }
   };
 
-  return { transcript, isListening, startListening, stopListening };
+  return { transcript, isListening, isSupported, startListening, stopListening };
 }
-
 function GlobalDrops() {
   const [drops, setDrops] = useState([]);
   useEffect(() => {
@@ -167,7 +207,7 @@ export default function App() {
   const [isNearSlot, setIsNearSlot] = useState(false);
   const [streak, setStreak] = useState(0);
   const [isMobile, setIsMobile] = useState(false);
-  const { transcript, isListening, startListening, stopListening } = useSpeechRecognition();
+  const { transcript, isListening, isSupported, startListening, stopListening } = useSpeechRecognition();
 
   const [strokes, setStrokes] = useState([]);
   const [currentStroke, setCurrentStroke] = useState([]);
@@ -404,7 +444,11 @@ useEffect(() => {
       {!position && !hasPostedToday && strokes.length === 0 && (
   <p style={st.hint}>
     {mode === 'type' ? (isMobile ? 'tap anywhere' : 'click anywhere')
-      : mode === 'speak' ? (isListening ? 'listening...' : (isMobile ? 'tap to speak' : 'click to speak'))
+      : mode === 'speak' ? (
+          isSupported 
+            ? (isListening ? 'listening...' : (isMobile ? 'tap to speak' : 'click to speak'))
+            : 'speech not supported — try typing'
+        )
       : 'draw anywhere'}
   </p>
 )}
