@@ -208,6 +208,7 @@ export default function App() {
   const [streak, setStreak] = useState(0);
   const [isMobile, setIsMobile] = useState(false);
   const { transcript, isListening, isSupported, startListening, stopListening } = useSpeechRecognition();
+  const [isAdmin, setIsAdmin] = useState(false);
 
   const [strokes, setStrokes] = useState([]);
   const [currentStroke, setCurrentStroke] = useState([]);
@@ -229,14 +230,32 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    fetch('https://slot-backend-production.up.railway.app/api/status')
-      .then(r => r.json())
-      .then(d => {
-        setHasPostedToday(d.hasDroppedToday);
-        setStreak(d.streak);
+  // Check for admin mode in URL
+  const params = new URLSearchParams(window.location.search);
+  const adminKey = params.get('admin');
+  
+  if (adminKey) {
+    // Verify admin key with backend
+    fetch('https://slot-backend-production.up.railway.app/api/admin/stats', {
+      headers: { 'x-admin-key': adminKey }
+    })
+      .then(r => {
+        if (r.ok) {
+          setIsAdmin(true);
+          console.log('Admin mode enabled');
+        }
       })
       .catch(() => {});
-  }, []);
+  }
+
+  fetch('https://slot-backend-production.up.railway.app/api/status')
+    .then(r => r.json())
+    .then(d => {
+      setHasPostedToday(d.hasDroppedToday);
+      setStreak(d.streak);
+    })
+    .catch(() => {});
+}, []);
 
   const computeDrawBounds = useCallback((allStrokes) => {
     const allPts = allStrokes.flat();
@@ -247,7 +266,7 @@ export default function App() {
   }, []);
 
   const handleClick = (e) => {
-  if (hasPostedToday || isDragging || hasContent) return;
+  if ((hasPostedToday && !isAdmin) || isDragging || hasContent) return;
   if (e.target.closest('[data-controls]')) return;
   if (mode === 'draw') return;
   const p = getEventPos(e);
@@ -258,7 +277,7 @@ export default function App() {
 };
 
   const handleDrawStart = (e) => {
-    if (hasPostedToday || isDragging || hasContent) return;
+    if ((hasPostedToday && !isAdmin) || isDragging || hasContent) return;
     if (e.target.closest('[data-controls]')) return;
     if (mode !== 'draw') return;
     const p = getEventPos(e);
@@ -354,17 +373,20 @@ export default function App() {
       }).catch(() => {});
 
       setTimeout(() => {
-  stopListening();
-  setHasPostedToday(true);
-  setMessage(''); setStrokes([]); setDrawBounds(null);
-  setPosition(null); setDropAnim(null);
-  setStreak(s => s + 1);
-}, 500);
+        stopListening();
+        setHasPostedToday(true);
+        setMessage(''); setStrokes([]); setDrawBounds(null);
+        setPosition(null); setDropAnim(null);
+        setStreak(s => s + 1);
+        if (isAdmin) {
+          setTimeout(() => setHasPostedToday(false), 1000);
+        }
+      }, 500);
     } else {
       setIsDragging(false);
       setIsNearSlot(false);
     }
-  }, [isDragging, isNearSlot, hasContent, playDrop, mode, message.length]);
+  }, [isDragging, isNearSlot, hasContent, playDrop, mode, message.length, isAdmin, stopListening]);
 
   useEffect(() => {
     if (isDragging) {
@@ -424,7 +446,7 @@ useEffect(() => {
 
       <header style={st.header}>
         <div style={st.headerLeft}>
-          <span style={st.title}>slot.</span>
+          <span style={st.title}>slot.{isAdmin && <span style={{ fontSize: '10px', color: '#e74c3c', marginLeft: '6px' }}>ADMIN</span>}</span>
           <LiveCounter />
         </div>
         <div style={st.headerRight}>
@@ -452,7 +474,7 @@ useEffect(() => {
       : 'draw anywhere'}
   </p>
 )}
-      {hasPostedToday && !dropAnim && <p style={st.hint}>gone</p>}
+      {hasPostedToday && !dropAnim && <p style={st.hint}>{isAdmin ? 'gone (admin: unlimited)' : 'gone'}</p>}
 
       {pos && !hasPostedToday && (mode === 'type' || mode === 'speak') && (
         <div data-text style={{
