@@ -489,10 +489,11 @@ useEffect(() => {
       {pos && (!hasPostedToday || isAdmin) && (mode === 'type' || mode === 'speak') && (
         <div data-text style={{
           ...st.textWrapper,
-          left: isMobile ? Math.min(Math.max(pos.x, 40), window.innerWidth - 40) : pos.x,
-          top: isMobile ? Math.min(Math.max(pos.y, 100), window.innerHeight - 200) : Math.max(pos.y, 60),
+          left: Math.min(Math.max(pos.x, 160), window.innerWidth - 160),
+          top: Math.min(Math.max(pos.y, 80), window.innerHeight - 180),
           transform: 'translate(-50%, 0)',
-          width: isMobile ? '85%' : 'auto',
+          maxWidth: isMobile ? '85vw' : '320px',
+          width: isMobile ? '85vw' : '280px',
           transform: `translate(-50%, -50%) scale(${dropAnim ? 0.4 : 1})`,
           opacity: dropAnim ? 0 : 1,
           cursor: hasContent ? (isDragging ? 'grabbing' : 'grab') : 'text',
@@ -617,7 +618,7 @@ const st = {
   slot: { width: '200px', height: '2px', background: '#000', transition: 'all 0.25s ease' },
   hint: { position: 'absolute', top: 'calc(50% + 20px)', left: '50%', transform: 'translateX(-50%)', fontSize: '13px', color: '#ccc', pointerEvents: 'none', zIndex: 2, fontWeight: 300, whiteSpace: 'nowrap' },
   textWrapper: { position: 'fixed', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px', zIndex: 10 },
-  textarea: { width: '280px', minHeight: '24px', padding: '0', border: 'none', background: 'transparent', fontFamily: '"Outfit", sans-serif', fontSize: '16px', fontWeight: 300, lineHeight: 1.6, color: '#000', resize: 'none', textAlign: 'center', overflow: 'hidden' },
+  textarea: { width: '280px', minHeight: '24px', padding: '0', border: 'none', background: 'transparent', fontFamily: '"Outfit", sans-serif', fontSize: '16px', fontWeight: 300, lineHeight: 1.6, color: '#000', resize: 'none', textAlign: 'center', overflow: 'hidden', wordWrap: 'break-word' },
   dragHint: { fontSize: '11px', color: '#ccc', fontWeight: 300 },
   modeBar: { position: 'absolute', bottom: '56px', left: '50%', transform: 'translateX(-50%)', display: 'flex', gap: '4px', background: '#f0f0f0', borderRadius: '20px', padding: '3px', zIndex: 5 },
   modeBtn: { padding: '8px 18px', background: 'transparent', border: 'none', borderRadius: '18px', fontFamily: '"Outfit", sans-serif', fontSize: '12px', fontWeight: 400, color: '#999', cursor: 'pointer', transition: 'all 0.2s ease' },
