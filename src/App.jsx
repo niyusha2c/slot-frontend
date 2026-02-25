@@ -214,6 +214,7 @@ export default function App() {
   const [currentStroke, setCurrentStroke] = useState([]);
   const [isDrawingStroke, setIsDrawingStroke] = useState(false);
   const [drawBounds, setDrawBounds] = useState(null);
+  const [isDrawingDone, setIsDrawingDone] = useState(false);
 
   const textareaRef = useRef(null);
   const slotRef = useRef(null);
@@ -381,6 +382,7 @@ export default function App() {
         setHasPostedToday(true);
         setMessage(''); setStrokes([]); setDrawBounds(null);
         setPosition(null); setDropAnim(null);
+        setIsDrawingDone(false);
         setStreak(s => s + 1);
         if (isAdmin) {
           setTimeout(() => setHasPostedToday(false), 1000);
@@ -426,6 +428,7 @@ useEffect(() => {
   const resetAll = () => {
     setPosition(null); setMessage(''); setStrokes([]);
     setDrawBounds(null); setIsDrawingStroke(false);
+    setIsDrawingDone(false);
   };
 
   const pos = dropAnim ? dropAnim : isDragging ? dragPos : position;
@@ -439,17 +442,56 @@ useEffect(() => {
       onMouseDown={mode === 'draw' ? handleDrawStart : undefined}
       onMouseMove={mode === 'draw' && isDrawingStroke ? handleDrawMove : undefined}
       onMouseUp={mode === 'draw' && isDrawingStroke ? handleDrawEnd : undefined}
-      onTouchStart={mode === 'draw' ? handleDrawStart : undefined}
-      onTouchMove={mode === 'draw' && isDrawingStroke ? handleDrawMove : undefined}
-      onTouchEnd={mode === 'draw' && isDrawingStroke ? handleDrawEnd : undefined}
+      onTouchStart={mode === 'draw' && !isDrawingDone ? handleDrawStart : undefined}
+      onTouchMove={mode === 'draw' && isDrawingStroke && !isDrawingDone ? handleDrawMove : undefined}
+      onTouchEnd={mode === 'draw' && isDrawingStroke && !isDrawingDone ? handleDrawEnd : undefined}
     >
       <GlobalDrops />
       {mode === 'draw' && (
         <canvas ref={drawCanvasRef} style={{
-          position: 'fixed', inset: 0, zIndex: 1, pointerEvents: 'none',
+          position: 'fixed', inset: 0, zIndex: 1, pointerEvents: isDrawingDone ? 'none' : 'auto',
           opacity: dropAnim ? 0 : 1, transition: dropAnim ? 'opacity 0.4s ease' : 'none',
         }} />
       )}
+      {mode === 'draw' && drawBounds && !isDragging && !dropAnim && strokes.length > 0 && isDrawingDone && (!hasPostedToday || isAdmin) && (
+  <div style={{
+    position: 'fixed',
+    bottom: isMobile ? '140px' : '100px',
+    left: '50%',
+    transform: 'translateX(-50%)',
+    display: 'flex',
+    gap: '12px',
+    zIndex: 20,
+  }}>
+    <button
+      onClick={() => { setStrokes([]); setDrawBounds(null); }}
+      style={{
+        padding: '10px 20px',
+        fontSize: '14px',
+        background: '#fff',
+        border: '1px solid #ddd',
+        borderRadius: '20px',
+        cursor: 'pointer',
+      }}
+    >
+      clear
+    </button>
+    <button
+      onClick={() => setIsDrawingDone(true)}
+      style={{
+        padding: '10px 20px',
+        fontSize: '14px',
+        background: '#000',
+        color: '#fff',
+        border: 'none',
+        borderRadius: '20px',
+        cursor: 'pointer',
+      }}
+    >
+      done ✓
+    </button>
+  </div>
+)}
 
       <header style={st.header}>
         <div style={st.headerLeft}>
