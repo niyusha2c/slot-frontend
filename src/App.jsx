@@ -466,7 +466,7 @@ useEffect(() => {
         }} />
       </div>
 
-      {!position && (!hasPostedToday || isAdmin) && strokes.length === 0 && (
+      {!position && (!hasPostedToday || isAdmin) && strokes.length === 0 && !dropAnim && (
   <p style={st.hint}>
     {mode === 'type' ? (isMobile ? 'tap anywhere' : 'click anywhere')
       : mode === 'speak' ? (
@@ -477,7 +477,7 @@ useEffect(() => {
       : 'draw anywhere'}
   </p>
 )}
-      {hasPostedToday && !dropAnim && <p style={st.hint}>{isAdmin ? 'gone (admin: unlimited)' : 'gone'}</p>}
+      {hasPostedToday && !dropAnim && !isAdmin && <p style={st.hint}>gone</p>}
 
       {pos && (!hasPostedToday || isAdmin) && (mode === 'type' || mode === 'speak') && (
         <div data-text style={{
