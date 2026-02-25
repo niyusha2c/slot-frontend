@@ -497,13 +497,26 @@ useEffect(() => {
             ref={textareaRef}
             style={{
               ...st.textarea,
-              width: isMobile ? '100%' : '240px',
+              width: isMobile ? '100%' : '280px',
+              minHeight: '24px',
+              height: 'auto',
+              maxHeight: '200px',
+              overflow: 'hidden',
               pointerEvents: isDragging ? 'none' : 'auto',
               fontSize: isMobile ? '18px' : '16px',
+              cursor: hasContent ? 'grab' : 'text',
             }}
             value={message}
-            onChange={(e) => setMessage(e.target.value.slice(0, 200))}
+            onChange={(e) => {
+              const val = e.target.value.slice(0, 200);
+              setMessage(val);
+              // Auto-resize
+              e.target.style.height = 'auto';
+              e.target.style.height = e.target.scrollHeight + 'px';
+            }}
             onKeyDown={handleKeyDown}
+            onMouseDown={hasContent ? handleDragStart : undefined}
+            onTouchStart={hasContent ? handleDragStart : undefined}
             placeholder="..."
             autoFocus
           />
@@ -588,7 +601,7 @@ const st = {
   slot: { width: '200px', height: '2px', background: '#000', transition: 'all 0.25s ease' },
   hint: { position: 'absolute', top: 'calc(50% + 20px)', left: '50%', transform: 'translateX(-50%)', fontSize: '13px', color: '#ccc', pointerEvents: 'none', zIndex: 2, fontWeight: 300, whiteSpace: 'nowrap' },
   textWrapper: { position: 'fixed', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px', zIndex: 10 },
-  textarea: { width: '240px', minHeight: '60px', padding: '0', border: 'none', background: 'transparent', fontFamily: '"Outfit", sans-serif', fontSize: '16px', fontWeight: 300, lineHeight: 1.6, color: '#000', resize: 'none', textAlign: 'center' },
+  textarea: { width: '280px', minHeight: '24px', padding: '0', border: 'none', background: 'transparent', fontFamily: '"Outfit", sans-serif', fontSize: '16px', fontWeight: 300, lineHeight: 1.6, color: '#000', resize: 'none', textAlign: 'center', overflow: 'hidden' },
   dragHint: { fontSize: '11px', color: '#ccc', fontWeight: 300 },
   modeBar: { position: 'absolute', bottom: '56px', left: '50%', transform: 'translateX(-50%)', display: 'flex', gap: '4px', background: '#f0f0f0', borderRadius: '20px', padding: '3px', zIndex: 5 },
   modeBtn: { padding: '8px 18px', background: 'transparent', border: 'none', borderRadius: '18px', fontFamily: '"Outfit", sans-serif', fontSize: '12px', fontWeight: 400, color: '#999', cursor: 'pointer', transition: 'all 0.2s ease' },
