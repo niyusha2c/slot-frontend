@@ -446,7 +446,10 @@ useEffect(() => {
 
       <header style={st.header}>
         <div style={st.headerLeft}>
-          <span style={st.title}>slot.{isAdmin && <span style={{ fontSize: '10px', color: '#e74c3c', marginLeft: '6px' }}>ADMIN</span>}</span>
+          <div style={{ display: 'flex', flexDirection: 'column' }}>
+            <span style={st.title}>slot.</span>
+            {isAdmin && <span style={{ fontSize: '9px', color: '#e74c3c', letterSpacing: '0.05em' }}>ADMIN</span>}
+          </div>
           <LiveCounter />
         </div>
         <div style={st.headerRight}>
