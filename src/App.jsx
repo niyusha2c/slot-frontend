@@ -269,7 +269,7 @@ export default function App() {
   if ((hasPostedToday && !isAdmin) || isDragging || hasContent) return;
   if (e.target.closest('[data-controls]')) return;
   if (mode === 'draw') return;
-  const p = getEventPos(e);
+  const p = getEventPos(e); 
   setPosition(p);
   setMessage('');
   if (mode === 'type') setTimeout(() => textareaRef.current?.focus(), 50);
@@ -466,7 +466,7 @@ useEffect(() => {
         }} />
       </div>
 
-      {!position && !hasPostedToday && strokes.length === 0 && (
+      {!position && (!hasPostedToday || isAdmin) && strokes.length === 0 && (
   <p style={st.hint}>
     {mode === 'type' ? (isMobile ? 'tap anywhere' : 'click anywhere')
       : mode === 'speak' ? (
@@ -479,7 +479,7 @@ useEffect(() => {
 )}
       {hasPostedToday && !dropAnim && <p style={st.hint}>{isAdmin ? 'gone (admin: unlimited)' : 'gone'}</p>}
 
-      {pos && !hasPostedToday && (mode === 'type' || mode === 'speak') && (
+      {pos && (!hasPostedToday || isAdmin) && (mode === 'type' || mode === 'speak') && (
         <div data-text style={{
           ...st.textWrapper,
           left: isMobile ? '50%' : pos.x,
@@ -537,7 +537,7 @@ useEffect(() => {
         </div>
       )}
 
-      {mode === 'draw' && drawBounds && !isDragging && !dropAnim && strokes.length > 0 && !hasPostedToday && (
+      {mode === 'draw' && drawBounds && !isDragging && !dropAnim && strokes.length > 0 && (!hasPostedToday || isAdmin) && (
         <div data-text style={{
           position: 'fixed',
           left: (drawBounds.minX + drawBounds.maxX) / 2,
@@ -553,7 +553,7 @@ useEffect(() => {
         </div>
       )}
 
-      {!hasPostedToday && (
+      {(!hasPostedToday || isAdmin) && (
         <div data-controls style={{ ...st.modeBar, bottom: isMobile ? '32px' : '56px' }}>
           {['type', 'speak', 'draw'].map(m => (
             <button key={m}
