@@ -483,7 +483,7 @@ useEffect(() => {
         <div data-text style={{
           ...st.textWrapper,
           left: isMobile ? '50%' : pos.x,
-          top: isMobile ? '40%' : pos.y,
+          top: isMobile ? '30%' : Math.max(pos.y, 60),
           width: isMobile ? '85%' : 'auto',
           transform: `translate(-50%, -50%) scale(${dropAnim ? 0.4 : 1})`,
           opacity: dropAnim ? 0 : 1,
@@ -497,22 +497,20 @@ useEffect(() => {
             ref={textareaRef}
             style={{
               ...st.textarea,
-              width: isMobile ? '100%' : '280px',
+              width: isMobile ? '90%' : '320px',
               minHeight: '24px',
-              height: 'auto',
-              maxHeight: '200px',
-              overflow: 'hidden',
+              maxHeight: '60vh',
+              overflow: message.length > 500 ? 'auto' : 'hidden',
               pointerEvents: isDragging ? 'none' : 'auto',
-              fontSize: isMobile ? '18px' : '16px',
+              fontSize: message.length > 500 ? '14px' : message.length > 200 ? '15px' : (isMobile ? '18px' : '16px'),
               cursor: hasContent ? 'grab' : 'text',
             }}
             value={message}
             onChange={(e) => {
               const val = e.target.value.slice(0, 1000);
               setMessage(val);
-              // Auto-resize
               e.target.style.height = 'auto';
-              e.target.style.height = e.target.scrollHeight + 'px';
+              e.target.style.height = Math.min(e.target.scrollHeight, window.innerHeight * 0.6) + 'px';
             }}
             onKeyDown={handleKeyDown}
             onMouseDown={hasContent ? handleDragStart : undefined}
