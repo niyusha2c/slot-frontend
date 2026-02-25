@@ -508,7 +508,7 @@ useEffect(() => {
             }}
             value={message}
             onChange={(e) => {
-              const val = e.target.value.slice(0, 200);
+              const val = e.target.value.slice(0, 1000);
               setMessage(val);
               // Auto-resize
               e.target.style.height = 'auto';
