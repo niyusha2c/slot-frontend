@@ -346,15 +346,19 @@ export default function App() {
   };
 
   const onMove = useCallback((e) => {
-    if (!isDragging) return;
-    e.preventDefault();
-    const p = getEventPos(e);
+  if (!isDragging) return;
+  e.preventDefault();
+  const p = getEventPos(e);
+  
+  // Use requestAnimationFrame for smoother updates
+  requestAnimationFrame(() => {
     setDragPos(p);
     if (slotRef.current) {
       const r = slotRef.current.getBoundingClientRect();
-      setIsNearSlot(Math.abs(p.y - r.top) < 80);
+      setIsNearSlot(Math.abs(p.y - r.top) < 100);
     }
-  }, [isDragging]);
+  });
+}, [isDragging]);
 
   const onUp = useCallback(() => {
     if (!isDragging) return;
@@ -390,15 +394,18 @@ export default function App() {
 
   useEffect(() => {
     if (isDragging) {
+      const options = { passive: false };
       window.addEventListener('mousemove', onMove);
       window.addEventListener('mouseup', onUp);
       window.addEventListener('touchmove', onMove, { passive: false });
       window.addEventListener('touchend', onUp);
+      window.addEventListener('touchcancel', onUp);
       return () => {
         window.removeEventListener('mousemove', onMove);
         window.removeEventListener('mouseup', onUp);
         window.removeEventListener('touchmove', onMove);
         window.removeEventListener('touchend', onUp);
+        window.removeEventListener('touchcancel', onUp);
       };
     }
   }, [isDragging, onMove, onUp]);
@@ -482,8 +489,9 @@ useEffect(() => {
       {pos && (!hasPostedToday || isAdmin) && (mode === 'type' || mode === 'speak') && (
         <div data-text style={{
           ...st.textWrapper,
-          left: isMobile ? '50%' : pos.x,
-          top: isMobile ? '30%' : Math.max(pos.y, 60),
+          left: isMobile ? Math.min(Math.max(pos.x, 40), window.innerWidth - 40) : pos.x,
+          top: isMobile ? Math.min(Math.max(pos.y, 100), window.innerHeight - 200) : Math.max(pos.y, 60),
+          transform: 'translate(-50%, 0)',
           width: isMobile ? '85%' : 'auto',
           transform: `translate(-50%, -50%) scale(${dropAnim ? 0.4 : 1})`,
           opacity: dropAnim ? 0 : 1,
@@ -519,7 +527,12 @@ useEffect(() => {
             autoFocus
           />
           {hasContent && !isDragging && (
-            <span style={st.dragHint}>{isMobile ? 'drag to slot ↑' : 'drag to slot'}</span>
+            <span style={{
+              ...st.dragHint,
+              padding: isMobile ? '12px 20px' : '8px 12px',
+              background: isMobile ? 'rgba(0,0,0,0.03)' : 'transparent',
+              borderRadius: '8px',
+            }}>{isMobile ? 'drag to slot ↑' : 'drag to slot'}</span>
           )}
           {mode === 'speak' && isListening && (
   <span style={{ fontSize: '12px', color: '#e74c3c', marginTop: '8px' }}>● recording</span>
@@ -547,7 +560,12 @@ useEffect(() => {
           onMouseDown={handleDragStart}
           onTouchStart={handleDragStart}
         >
-          <span style={st.dragHint}>drag to slot ↑</span>
+          <span style={{
+            ...st.dragHint,
+            padding: isMobile ? '12px 20px' : '8px 12px',
+            background: isMobile ? 'rgba(0,0,0,0.03)' : 'transparent',
+            borderRadius: '8px',
+          }}>drag to slot ↑</span>
         </div>
       )}
 
