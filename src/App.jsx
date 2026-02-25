@@ -489,12 +489,11 @@ useEffect(() => {
       {pos && (!hasPostedToday || isAdmin) && (mode === 'type' || mode === 'speak') && (
         <div data-text style={{
           ...st.textWrapper,
-          left: Math.min(Math.max(pos.x, 160), window.innerWidth - 160),
-          top: Math.min(Math.max(pos.y, 80), window.innerHeight - 180),
+          left: isMobile ? '50%' : Math.min(Math.max(pos.x, 160), window.innerWidth - 160),
+          top: isMobile ? pos.y : Math.min(Math.max(pos.y, 80), window.innerHeight - 180),
           transform: 'translate(-50%, 0)',
           maxWidth: isMobile ? '85vw' : '320px',
           width: isMobile ? '85vw' : '280px',
-          transform: `translate(-50%, -50%) scale(${dropAnim ? 0.4 : 1})`,
           opacity: dropAnim ? 0 : 1,
           cursor: hasContent ? (isDragging ? 'grabbing' : 'grab') : 'text',
           transition: dropAnim ? 'all 0.4s cubic-bezier(0.4,0,0.2,1)' : 'none',
