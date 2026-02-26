@@ -594,23 +594,27 @@ useEffect(() => {
       )}
 
       {mode === 'draw' && drawBounds && !isDragging && !dropAnim && strokes.length > 0 && isDrawingDone && (!hasPostedToday || isAdmin) && (
-        <div data-text style={{
-          position: 'fixed',
-          left: (drawBounds.minX + drawBounds.maxX) / 2,
-          top: drawBounds.maxY + 16,
-          transform: 'translateX(-50%)',
-          display: 'flex', flexDirection: 'column', alignItems: 'center',
-          zIndex: 10, cursor: 'grab', padding: '12px 20px',
-        }}
+        <div 
+          data-text 
+          style={{
+            position: 'fixed',
+            left: drawBounds.minX - 20,
+            top: drawBounds.minY - 20,
+            width: drawBounds.maxX - drawBounds.minX + 40,
+            height: drawBounds.maxY - drawBounds.minY + 60,
+            cursor: 'grab',
+            zIndex: 10,
+          }}
           onMouseDown={handleDragStart}
           onTouchStart={handleDragStart}
         >
           <span style={{
+            position: 'absolute',
+            bottom: '0',
+            left: '50%',
+            transform: 'translateX(-50%)',
             ...st.dragHint,
-            padding: isMobile ? '12px 20px' : '8px 12px',
-            background: isMobile ? 'rgba(0,0,0,0.03)' : 'transparent',
-            borderRadius: '8px',
-          }}>drag to slot ↑</span>
+          }}>{isMobile ? 'drag to slot ↑' : 'drag to slot'}</span>
         </div>
       )}
 
