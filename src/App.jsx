@@ -474,7 +474,7 @@ useEffect(() => {
         cursor: 'pointer',
       }}
     >
-      clear
+      ✕
     </button>
     <button
       onClick={() => setIsDrawingDone(true)}
@@ -488,7 +488,7 @@ useEffect(() => {
         cursor: 'pointer',
       }}
     >
-      done ✓
+      ✓
     </button>
   </div>
 )}
