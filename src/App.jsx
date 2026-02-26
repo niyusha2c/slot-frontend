@@ -328,7 +328,18 @@ export default function App() {
       if (stroke.length < 2) continue;
       ctx.beginPath();
       ctx.moveTo(stroke[0].x + ox, stroke[0].y + oy);
-      for (let i = 1; i < stroke.length; i++) ctx.lineTo(stroke[i].x + ox, stroke[i].y + oy);
+      
+      if (stroke.length === 2) {
+        ctx.lineTo(stroke[1].x + ox, stroke[1].y + oy);
+      } else {
+        for (let i = 1; i < stroke.length - 1; i++) {
+          const midX = (stroke[i].x + stroke[i + 1].x) / 2 + ox;
+          const midY = (stroke[i].y + stroke[i + 1].y) / 2 + oy;
+          ctx.quadraticCurveTo(stroke[i].x + ox, stroke[i].y + oy, midX, midY);
+        }
+        const last = stroke[stroke.length - 1];
+        ctx.lineTo(last.x + ox, last.y + oy);
+      }
       ctx.stroke();
     }
   }, [strokes, currentStroke, isDragging, dragPos, dropAnim, drawBounds]);
