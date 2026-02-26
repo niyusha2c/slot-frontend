@@ -1,0 +1,17 @@
+{
+  "name": "slot.",
+  "short_name": "slot.",
+  "description": "Drop one thought per day into the void. Anonymous. No trace.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#fafafa",
+  "theme_color": "#000000",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
