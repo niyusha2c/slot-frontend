@@ -454,41 +454,44 @@ useEffect(() => {
         }} />
       )}
   {mode === 'draw' && strokes.length > 0 && !isDrawingDone && (!hasPostedToday || isAdmin) && (
-   <div style={{
+  <div style={{
     position: 'fixed',
     left: drawBounds ? (drawBounds.minX + drawBounds.maxX) / 2 : '50%',
     top: drawBounds ? drawBounds.maxY + 20 : '50%',
     transform: 'translateX(-50%)',
     display: 'flex',
-    gap: '8px',
+    gap: '16px',
     zIndex: 20,
   }}>
     <button
       onClick={() => { setStrokes([]); setDrawBounds(null); }}
       style={{
-        padding: '6px 14px',
-        fontSize: '12px',
-        background: '#fff',
-        border: '1px solid #ddd',
-        borderRadius: '16px',
+        padding: '4px 8px',
+        fontSize: '13px',
+        fontFamily: '"Outfit", sans-serif',
+        fontWeight: 300,
+        background: 'transparent',
+        border: 'none',
+        color: '#999',
         cursor: 'pointer',
       }}
     >
-      ✕
+      clear
     </button>
     <button
       onClick={() => setIsDrawingDone(true)}
       style={{
-        padding: '6px 14px',
-        fontSize: '12px',
-        background: '#000',
-        color: '#fff',
+        padding: '4px 8px',
+        fontSize: '13px',
+        fontFamily: '"Outfit", sans-serif',
+        fontWeight: 300,
+        background: 'transparent',
         border: 'none',
-        borderRadius: '16px',
+        color: '#000',
         cursor: 'pointer',
       }}
     >
-      ✓
+      done
     </button>
   </div>
 )}
