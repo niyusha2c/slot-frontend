@@ -453,24 +453,24 @@ useEffect(() => {
           opacity: dropAnim ? 0 : 1, transition: dropAnim ? 'opacity 0.4s ease' : 'none',
         }} />
       )}
-      {mode === 'draw' && strokes.length > 0 && !isDrawingDone && (!hasPostedToday || isAdmin) && (
-  <div style={{
+  {mode === 'draw' && strokes.length > 0 && !isDrawingDone && (!hasPostedToday || isAdmin) && (
+   <div style={{
     position: 'fixed',
-    bottom: isMobile ? '140px' : '100px',
-    left: '50%',
+    left: drawBounds ? (drawBounds.minX + drawBounds.maxX) / 2 : '50%',
+    top: drawBounds ? drawBounds.maxY + 20 : '50%',
     transform: 'translateX(-50%)',
     display: 'flex',
-    gap: '12px',
+    gap: '8px',
     zIndex: 20,
   }}>
     <button
       onClick={() => { setStrokes([]); setDrawBounds(null); }}
       style={{
-        padding: '10px 20px',
-        fontSize: '14px',
+        padding: '6px 14px',
+        fontSize: '12px',
         background: '#fff',
         border: '1px solid #ddd',
-        borderRadius: '20px',
+        borderRadius: '16px',
         cursor: 'pointer',
       }}
     >
@@ -479,12 +479,12 @@ useEffect(() => {
     <button
       onClick={() => setIsDrawingDone(true)}
       style={{
-        padding: '10px 20px',
-        fontSize: '14px',
+        padding: '6px 14px',
+        fontSize: '12px',
         background: '#000',
         color: '#fff',
         border: 'none',
-        borderRadius: '20px',
+        borderRadius: '16px',
         cursor: 'pointer',
       }}
     >
