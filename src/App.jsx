@@ -453,7 +453,7 @@ useEffect(() => {
           opacity: dropAnim ? 0 : 1, transition: dropAnim ? 'opacity 0.4s ease' : 'none',
         }} />
       )}
-      {mode === 'draw' && drawBounds && !isDragging && !dropAnim && strokes.length > 0 && isDrawingDone && (!hasPostedToday || isAdmin) && (
+      {mode === 'draw' && strokes.length > 0 && !isDrawingDone && (!hasPostedToday || isAdmin) && (
   <div style={{
     position: 'fixed',
     bottom: isMobile ? '140px' : '100px',
@@ -590,7 +590,7 @@ useEffect(() => {
         </div>
       )}
 
-      {mode === 'draw' && drawBounds && !isDragging && !dropAnim && strokes.length > 0 && (!hasPostedToday || isAdmin) && (
+      {mode === 'draw' && drawBounds && !isDragging && !dropAnim && strokes.length > 0 && isDrawingDone && (!hasPostedToday || isAdmin) && (
         <div data-text style={{
           position: 'fixed',
           left: (drawBounds.minX + drawBounds.maxX) / 2,
