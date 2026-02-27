@@ -645,7 +645,7 @@ useEffect(() => {
         </div>
       )}
 
-      <footer style={{ ...st.footer, bottom: isMobile ? '100px' : '24px' }}>
+      <footer style={{ ...st.footer, bottom: isMobile ? '80px' : '24px' }}>
         <a href="/about" style={{
           ...st.footerLink,
           fontSize: isMobile ? '14px' : '12px',
