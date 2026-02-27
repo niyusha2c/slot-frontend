@@ -645,9 +645,13 @@ useEffect(() => {
         </div>
       )}
 
-      <footer style={{ ...st.footer, bottom: isMobile ? '12px' : '24px' }}>
-  <a href="/about" style={st.footerLink}>about</a>
-</footer>
+      <footer style={{ ...st.footer, bottom: isMobile ? '100px' : '24px' }}>
+        <a href="/about" style={{
+          ...st.footerLink,
+          fontSize: isMobile ? '14px' : '12px',
+          padding: '8px',
+        }}>about</a>
+      </footer>
 
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500&display=swap');
