@@ -56,7 +56,8 @@ export default function About() {
         </div>
 
         <div style={s.footer}>
-          <p style={s.footerText}>No data. No trace. One per day.</p>
+            <p style={s.footerText}>No data. No trace. One per day.</p>
+            <a href="/privacy" style={{ fontSize: '13px', fontWeight: 300, color: '#999', marginTop: '16px', display: 'inline-block' }}>privacy policy</a>
         </div>
       </main>
 
