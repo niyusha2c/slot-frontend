@@ -59,7 +59,7 @@ export default function About() {
             <p style={s.footerText}>No data. No trace. One per day.</p>
             <a href="/privacy" style={{ fontSize: '13px', fontWeight: 300, color: '#999', marginTop: '16px', display: 'inline-block' }}>privacy policy</a>
             <br />
-            <a href="mailto:hello@oneslot.day" style={{ fontSize: '13px', fontWeight: 300, color: '#999', marginTop: '8px', display: 'inline-block' }}>contact</a>
+            <a href="/feedback" style={{ fontSize: '13px', fontWeight: 300, color: '#999', marginTop: '8px', display: 'inline-block' }}>feedback</a>
         </div>
       </main>
 
