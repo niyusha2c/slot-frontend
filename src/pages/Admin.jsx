@@ -6,6 +6,7 @@ export default function Admin() {
   const [key, setKey] = useState('');
   const [authed, setAuthed] = useState(false);
   const [stats, setStats] = useState(null);
+  const [feedback, setFeedback] = useState([]);
   const [error, setError] = useState('');
 
   const login = async () => {
@@ -18,6 +19,14 @@ export default function Admin() {
         setStats(data);
         setAuthed(true);
         setError('');
+        // Fetch feedback
+        const fbRes = await fetch(`${API}/api/admin/feedback`, {
+          headers: { 'x-admin-key': key },
+        });
+        if (fbRes.ok) {
+          const fbData = await fbRes.json();
+          setFeedback(fbData.feedback || []);
+        }
       } else {
         setError('Invalid admin key');
       }
@@ -98,6 +107,24 @@ export default function Admin() {
             <p style={s.empty}>No drops yet</p>
           )}
         </div>
+
+        <div style={{ ...s.card, marginTop: '24px' }}>
+          <h2 style={s.cardTitle}>Feedback ({feedback.length})</h2>
+          {feedback.length > 0 ? (
+            <div style={s.feedbackList}>
+              {feedback.map((f, i) => (
+                <div key={i} style={s.feedbackItem}>
+                  <p style={s.feedbackMessage}>{f.message}</p>
+                  <span style={s.feedbackTime}>
+                    {new Date(f.created_at).toLocaleString()}
+                  </span>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p style={s.empty}>No feedback yet</p>
+          )}
+        </div>
       </main>
 
       <style>{`
@@ -172,4 +199,14 @@ const s = {
   recentChars: { flex: 1, fontWeight: 300, color: '#666' },
   recentTime: { fontSize: '11px', color: '#bbb' },
   empty: { fontSize: '13px', color: '#999', fontWeight: 300 },
+  feedbackList: { display: 'flex', flexDirection: 'column', gap: '16px' },
+  feedbackItem: {
+    padding: '16px', background: '#fafafa', borderRadius: '8px',
+    borderLeft: '3px solid #000',
+  },
+  feedbackMessage: {
+    fontSize: '14px', fontWeight: 300, lineHeight: 1.6, color: '#333',
+    marginBottom: '8px',
+  },
+  feedbackTime: { fontSize: '11px', color: '#999' },
 };
