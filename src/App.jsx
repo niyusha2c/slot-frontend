@@ -376,10 +376,15 @@ export default function App() {
   const month = new Date().getMonth();
   const accent = month < 2 || month > 10 ? '#8aa4bf' : month < 5 ? '#7ab87a' : month < 8 ? '#e8c84a' : '#c47a4a';
 
-  // Clamp text box center so it stays on screen — works for both mobile and desktop
-  const half = TEXT_W / 2 + 12;
+  // Use visualViewport when available so keyboard height is accounted for
+  const vvHeight = (typeof window !== 'undefined' && window.visualViewport)
+    ? window.visualViewport.height
+    : window.innerHeight;
+
+  const half = TEXT_W / 2 + 2; // minimal edge padding — lets box go near borders
   const clampedX = pos ? Math.min(Math.max(pos.x, half), window.innerWidth - half) : 0;
-  const clampedY = pos ? Math.min(Math.max(pos.y, 80), window.innerHeight - 180) : 0;
+  // Keep text in top 55% of visible viewport so keyboard never covers it
+  const clampedY = pos ? Math.min(Math.max(pos.y, 80), vvHeight * 0.55) : 0;
 
   return (
     <div
