@@ -1,6 +1,6 @@
 import { useState } from 'react';
 
-const API = import.meta.env.VITE_API_URL || '';
+const API = 'https://slot-backend-production.up.railway.app';
 
 export default function Feedback() {
   const [message, setMessage] = useState('');
