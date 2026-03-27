@@ -1,0 +1,594 @@
+import { useState, useEffect, useRef, useCallback } from 'react';
+
+function useDropSound() {
+  const ctxRef = useRef(null);
+  const play = useCallback(() => {
+    try {
+      const ctx = ctxRef.current || new (window.AudioContext || window.webkitAudioContext)();
+      ctxRef.current = ctx;
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.frequency.setValueAtTime(120, ctx.currentTime);
+      osc.frequency.exponentialRampToValueAtTime(40, ctx.currentTime + 0.15);
+      gain.gain.setValueAtTime(0.3, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.3);
+      osc.type = 'sine';
+      osc.start(ctx.currentTime);
+      osc.stop(ctx.currentTime + 0.3);
+    } catch {}
+  }, []);
+  return play;
+}
+
+function useSpeechRecognition() {
+  const [transcript, setTranscript] = useState('');
+  const [isListening, setIsListening] = useState(false);
+  const [isSupported, setIsSupported] = useState(true);
+  const recognitionRef = useRef(null);
+
+  useEffect(() => {
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognition) { setIsSupported(false); return; }
+    try {
+      const recognition = new SpeechRecognition();
+      recognition.continuous = true;
+      recognition.interimResults = true;
+      recognition.lang = 'en-US';
+      recognition.maxAlternatives = 1;
+      recognition.onresult = (event) => {
+        let finalTranscript = '';
+        for (let i = 0; i < event.results.length; i++) {
+          finalTranscript += event.results[i][0].transcript;
+        }
+        setTranscript(finalTranscript);
+      };
+      recognition.onerror = (event) => {
+        if (event.error === 'not-allowed') setIsSupported(false);
+        setIsListening(false);
+      };
+      recognition.onend = () => setIsListening(false);
+      recognitionRef.current = recognition;
+    } catch (e) { setIsSupported(false); }
+    return () => { try { recognitionRef.current?.stop(); } catch {} };
+  }, []);
+
+  const startListening = () => {
+    if (!isSupported || !recognitionRef.current || isListening) return false;
+    try {
+      setTranscript('');
+      recognitionRef.current.start();
+      setIsListening(true);
+      return true;
+    } catch (e) {
+      try {
+        recognitionRef.current.stop();
+        setTimeout(() => { recognitionRef.current.start(); setIsListening(true); }, 100);
+        return true;
+      } catch { return false; }
+    }
+  };
+
+  const stopListening = () => {
+    if (recognitionRef.current && isListening) {
+      try { recognitionRef.current.stop(); } catch {}
+      setIsListening(false);
+    }
+  };
+
+  return { transcript, isListening, isSupported, startListening, stopListening };
+}
+
+function GlobalDrops() {
+  const [drops, setDrops] = useState([]);
+  useEffect(() => {
+    const tick = () => {
+      const id = Date.now() + Math.random();
+      setDrops(prev => [...prev.slice(-20), { id, x: Math.random() * 100, born: Date.now() }]);
+      return setTimeout(tick, 800 + Math.random() * 2500);
+    };
+    const t = tick();
+    return () => clearTimeout(t);
+  }, []);
+  useEffect(() => {
+    const i = setInterval(() => setDrops(prev => prev.filter(d => Date.now() - d.born < 4000)), 500);
+    return () => clearInterval(i);
+  }, []);
+  return (
+    <div style={{ position: 'fixed', inset: 0, pointerEvents: 'none', zIndex: 0, overflow: 'hidden' }}>
+      {drops.map(d => (
+        <div key={d.id} style={{
+          position: 'absolute', top: '-4px', left: `${d.x}%`,
+          width: '3px', height: '3px', borderRadius: '50%',
+          background: 'rgba(0,0,0,0.06)',
+          animation: 'dropFall 4s ease-in forwards',
+        }} />
+      ))}
+    </div>
+  );
+}
+
+function LiveCounter() {
+  const [count, setCount] = useState(0);
+  useEffect(() => {
+    const fetchCount = () => {
+      fetch('https://slot-backend-production.up.railway.app/api/count')
+        .then(r => r.ok ? r.json() : null)
+        .then(d => { if (d && typeof d.count === 'number') setCount(d.count); })
+        .catch(() => {});
+    };
+    fetchCount();
+    const i = setInterval(fetchCount, 15000);
+    return () => clearInterval(i);
+  }, []);
+  return <span style={st.counter}>{count.toLocaleString()} today</span>;
+}
+
+function TimeDisplay() {
+  const [time, setTime] = useState('');
+  useEffect(() => {
+    const update = () => {
+      const now = new Date();
+      const mid = new Date(); mid.setHours(24, 0, 0, 0);
+      const d = mid - now;
+      setTime(`${Math.floor(d / 3600000)}:${String(Math.floor((d % 3600000) / 60000)).padStart(2, '0')}`);
+    };
+    update();
+    const i = setInterval(update, 1000);
+    return () => clearInterval(i);
+  }, []);
+  return <span>{time}</span>;
+}
+
+function getEventPos(e) {
+  if (e.touches && e.touches.length > 0) return { x: e.touches[0].clientX, y: e.touches[0].clientY };
+  if (e.changedTouches && e.changedTouches.length > 0) return { x: e.changedTouches[0].clientX, y: e.changedTouches[0].clientY };
+  return { x: e.clientX, y: e.clientY };
+}
+
+// Text box width in px — narrower on mobile so it can move freely on x axis
+const TEXT_W = 220;
+
+export default function App() {
+  const [mode, setMode] = useState('type');
+  const [message, setMessage] = useState('');
+  const [position, setPosition] = useState(null);
+  const [isDragging, setIsDragging] = useState(false);
+  const [dragPos, setDragPos] = useState({ x: 0, y: 0 });
+  const [dropAnim, setDropAnim] = useState(null);
+  const [hasPostedToday, setHasPostedToday] = useState(false);
+  const [isNearSlot, setIsNearSlot] = useState(false);
+  const [streak, setStreak] = useState(0);
+  const [isMobile, setIsMobile] = useState(false);
+  const { transcript, isListening, isSupported, startListening, stopListening } = useSpeechRecognition();
+  const [isAdmin, setIsAdmin] = useState(false);
+
+  const [strokes, setStrokes] = useState([]);
+  const [currentStroke, setCurrentStroke] = useState([]);
+  const [isDrawingStroke, setIsDrawingStroke] = useState(false);
+  const [drawBounds, setDrawBounds] = useState(null);
+  const [isDrawingDone, setIsDrawingDone] = useState(false);
+
+  const textareaRef = useRef(null);
+  const slotRef = useRef(null);
+  const drawCanvasRef = useRef(null);
+  const playDrop = useDropSound();
+  const hasContent = mode === 'draw' ? strokes.length > 0 : message.trim().length > 0;
+
+  useEffect(() => {
+    const check = () => setIsMobile(window.innerWidth <= 640);
+    check();
+    window.addEventListener('resize', check);
+    return () => window.removeEventListener('resize', check);
+  }, []);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const adminKey = params.get('admin');
+    if (adminKey) {
+      fetch('https://slot-backend-production.up.railway.app/api/admin/stats', {
+        headers: { 'x-admin-key': adminKey }
+      }).then(r => { if (r.ok) setIsAdmin(true); }).catch(() => {});
+    }
+    fetch('https://slot-backend-production.up.railway.app/api/status')
+      .then(r => r.json())
+      .then(d => { setHasPostedToday(d.hasDroppedToday); setStreak(d.streak); })
+      .catch(() => {});
+  }, []);
+
+  const computeDrawBounds = useCallback((allStrokes) => {
+    const allPts = allStrokes.flat();
+    if (!allPts.length) return null;
+    const xs = allPts.map(p => p.x);
+    const ys = allPts.map(p => p.y);
+    return { minX: Math.min(...xs) - 10, minY: Math.min(...ys) - 10, maxX: Math.max(...xs) + 10, maxY: Math.max(...ys) + 10 };
+  }, []);
+
+  const handleClick = (e) => {
+    if ((hasPostedToday && !isAdmin) || isDragging || hasContent) return;
+    if (e.target.closest('[data-controls]')) return;
+    if (mode === 'draw') return;
+    const p = getEventPos(e);
+    setPosition(p);
+    setMessage('');
+    if (mode === 'type') setTimeout(() => textareaRef.current?.focus(), 50);
+    if (mode === 'speak') startListening();
+  };
+
+  const handleDrawStart = (e) => {
+    if ((hasPostedToday && !isAdmin) || isDragging || isDrawingDone) return;
+    if (e.target.closest('[data-controls]')) return;
+    if (mode !== 'draw') return;
+    e.preventDefault();
+    const p = getEventPos(e);
+    setIsDrawingStroke(true);
+    setCurrentStroke([p]);
+  };
+
+  const handleDrawMove = (e) => {
+    if (!isDrawingStroke) return;
+    e.preventDefault();
+    const p = getEventPos(e);
+    setCurrentStroke(prev => [...prev, p]);
+  };
+
+  const handleDrawEnd = (e) => {
+    if (!isDrawingStroke) return;
+    e.preventDefault();
+    setIsDrawingStroke(false);
+    if (currentStroke.length > 1) {
+      const next = [...strokes, currentStroke];
+      setStrokes(next);
+      setDrawBounds(computeDrawBounds(next));
+    }
+    setCurrentStroke([]);
+  };
+
+  useEffect(() => {
+    const canvas = drawCanvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.strokeStyle = '#000';
+    ctx.lineWidth = 2;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    const all = [...strokes, ...(currentStroke.length > 1 ? [currentStroke] : [])];
+    let ox = 0, oy = 0;
+    if ((isDragging || dropAnim) && drawBounds) {
+      const cx = (drawBounds.minX + drawBounds.maxX) / 2;
+      const cy = (drawBounds.minY + drawBounds.maxY) / 2;
+      const target = dropAnim || dragPos;
+      ox = target.x - cx; oy = target.y - cy;
+    }
+    if (dropAnim) ctx.globalAlpha = 0.3;
+    for (const stroke of all) {
+      if (stroke.length < 2) continue;
+      ctx.beginPath();
+      ctx.moveTo(stroke[0].x + ox, stroke[0].y + oy);
+      if (stroke.length === 2) {
+        ctx.lineTo(stroke[1].x + ox, stroke[1].y + oy);
+      } else {
+        for (let i = 1; i < stroke.length - 1; i++) {
+          const midX = (stroke[i].x + stroke[i + 1].x) / 2 + ox;
+          const midY = (stroke[i].y + stroke[i + 1].y) / 2 + oy;
+          ctx.quadraticCurveTo(stroke[i].x + ox, stroke[i].y + oy, midX, midY);
+        }
+        const last = stroke[stroke.length - 1];
+        ctx.lineTo(last.x + ox, last.y + oy);
+      }
+      ctx.stroke();
+    }
+  }, [strokes, currentStroke, isDragging, dragPos, dropAnim, drawBounds]);
+
+  const handleDragStart = (e) => {
+    if (!hasContent) return;
+    e.preventDefault();
+    setIsDragging(true);
+    const p = getEventPos(e);
+    if (mode === 'draw' && drawBounds) {
+      setDragPos({ x: (drawBounds.minX + drawBounds.maxX) / 2, y: (drawBounds.minY + drawBounds.maxY) / 2 });
+    } else {
+      setDragPos(p);
+    }
+    if (navigator.vibrate) navigator.vibrate(10);
+  };
+
+  const onMove = useCallback((e) => {
+    if (!isDragging) return;
+    e.preventDefault();
+    const p = getEventPos(e);
+    requestAnimationFrame(() => {
+      setDragPos(p);
+      if (slotRef.current) {
+        const r = slotRef.current.getBoundingClientRect();
+        setIsNearSlot(Math.abs(p.y - r.top) < 100);
+      }
+    });
+  }, [isDragging]);
+
+  const onUp = useCallback(() => {
+    if (!isDragging) return;
+    if (isNearSlot && hasContent && slotRef.current) {
+      const r = slotRef.current.getBoundingClientRect();
+      setDropAnim({ x: r.left + r.width / 2, y: r.top });
+      setIsDragging(false);
+      setIsNearSlot(false);
+      playDrop();
+      if (navigator.vibrate) navigator.vibrate([20, 50, 20]);
+      fetch('https://slot-backend-production.up.railway.app/api/drop', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ mode, charCount: message.length }),
+      }).catch(() => {});
+      setTimeout(() => {
+        stopListening();
+        setHasPostedToday(true);
+        setMessage(''); setStrokes([]); setDrawBounds(null);
+        setPosition(null); setDropAnim(null);
+        setIsDrawingDone(false);
+        setStreak(s => s + 1);
+        if (isAdmin) setTimeout(() => setHasPostedToday(false), 1000);
+      }, 500);
+    } else {
+      setIsDragging(false);
+      setIsNearSlot(false);
+    }
+  }, [isDragging, isNearSlot, hasContent, playDrop, mode, message.length, isAdmin, stopListening]);
+
+  useEffect(() => {
+    if (isDragging) {
+      window.addEventListener('mousemove', onMove);
+      window.addEventListener('mouseup', onUp);
+      window.addEventListener('touchmove', onMove, { passive: false });
+      window.addEventListener('touchend', onUp);
+      window.addEventListener('touchcancel', onUp);
+      return () => {
+        window.removeEventListener('mousemove', onMove);
+        window.removeEventListener('mouseup', onUp);
+        window.removeEventListener('touchmove', onMove);
+        window.removeEventListener('touchend', onUp);
+        window.removeEventListener('touchcancel', onUp);
+      };
+    }
+  }, [isDragging, onMove, onUp]);
+
+  useEffect(() => {
+    if (mode === 'speak' && transcript) setMessage(transcript);
+  }, [transcript, mode]);
+
+  const handleKeyDown = (e) => {
+    if (e.key === 'Escape') {
+      setPosition(null); setMessage(''); setStrokes([]);
+      setDrawBounds(null); setIsDrawingStroke(false);
+    }
+  };
+
+  const resetAll = () => {
+    setPosition(null); setMessage(''); setStrokes([]);
+    setDrawBounds(null); setIsDrawingStroke(false); setIsDrawingDone(false);
+  };
+
+  const pos = dropAnim ? dropAnim : isDragging ? dragPos : position;
+  const month = new Date().getMonth();
+  const accent = month < 2 || month > 10 ? '#8aa4bf' : month < 5 ? '#7ab87a' : month < 8 ? '#e8c84a' : '#c47a4a';
+
+  // Clamp text box center so it stays on screen — works for both mobile and desktop
+  const half = TEXT_W / 2 + 12;
+  const clampedX = pos ? Math.min(Math.max(pos.x, half), window.innerWidth - half) : 0;
+  const clampedY = pos ? Math.min(Math.max(pos.y, 80), window.innerHeight - 180) : 0;
+
+  return (
+    <div
+      style={st.container}
+      onClick={handleClick}
+      onMouseDown={mode === 'draw' ? handleDrawStart : undefined}
+      onMouseMove={mode === 'draw' && isDrawingStroke ? handleDrawMove : undefined}
+      onMouseUp={mode === 'draw' && isDrawingStroke ? handleDrawEnd : undefined}
+      onTouchStart={mode === 'draw' && !isDrawingDone ? handleDrawStart : undefined}
+      onTouchMove={mode === 'draw' && isDrawingStroke && !isDrawingDone ? handleDrawMove : undefined}
+      onTouchEnd={mode === 'draw' && isDrawingStroke && !isDrawingDone ? handleDrawEnd : undefined}
+    >
+      <GlobalDrops />
+
+      {mode === 'draw' && (
+        <canvas ref={drawCanvasRef} style={{
+          position: 'fixed', inset: 0, zIndex: 1,
+          pointerEvents: isDrawingDone ? 'none' : 'auto',
+          opacity: dropAnim ? 0 : 1,
+          transition: dropAnim ? 'opacity 0.4s ease' : 'none',
+          touchAction: 'none',
+        }} />
+      )}
+
+      {mode === 'draw' && strokes.length > 0 && !isDrawingDone && (!hasPostedToday || isAdmin) && (
+        <div style={{
+          position: 'fixed',
+          left: drawBounds ? (drawBounds.minX + drawBounds.maxX) / 2 : '50%',
+          top: drawBounds ? drawBounds.maxY + 20 : '50%',
+          transform: 'translateX(-50%)',
+          display: 'flex', gap: '16px', zIndex: 20,
+        }}>
+          <button
+            onClick={() => { setStrokes([]); setDrawBounds(null); }}
+            style={st.drawBtn}
+          >clear</button>
+          <button
+            onClick={() => setIsDrawingDone(true)}
+            style={{ ...st.drawBtn, color: '#000' }}
+          >done</button>
+        </div>
+      )}
+
+      <header style={st.header}>
+        <div style={st.headerLeft}>
+          <div style={{ display: 'flex', flexDirection: 'column' }}>
+            <span style={st.title}>slot.</span>
+            {isAdmin && <span style={{ fontSize: '9px', color: '#e74c3c', letterSpacing: '0.05em' }}>ADMIN</span>}
+          </div>
+          <LiveCounter />
+        </div>
+        <div style={st.headerRight}>
+          {streak > 0 && !hasPostedToday && <span style={st.streak}>{streak}d</span>}
+          {hasPostedToday && <TimeDisplay />}
+        </div>
+      </header>
+
+      <div style={st.slotWrapper}>
+        <div ref={slotRef} style={{
+          ...st.slot,
+          ...(isNearSlot ? { height: '4px', boxShadow: `0 0 24px ${accent}40` } : {}),
+          ...(dropAnim ? { height: '8px', background: accent } : {}),
+        }} />
+      </div>
+
+      {!position && (!hasPostedToday || isAdmin) && strokes.length === 0 && !dropAnim && (
+        <p style={st.hint}>
+          {mode === 'type' ? (isMobile ? 'tap anywhere' : 'click anywhere')
+            : mode === 'speak' ? (
+                isSupported
+                  ? (isListening ? 'listening...' : (isMobile ? 'tap to speak' : 'click to speak'))
+                  : 'speech not supported — try typing'
+              )
+            : 'draw anywhere'}
+        </p>
+      )}
+      {hasPostedToday && !dropAnim && !isAdmin && <p style={st.hint}>gone</p>}
+
+      {pos && (!hasPostedToday || isAdmin) && (mode === 'type' || mode === 'speak') && (
+        <div data-text style={{
+          ...st.textWrapper,
+          left: clampedX,
+          top: clampedY,
+          width: TEXT_W,
+          transform: 'translate(-50%, 0)',
+          opacity: dropAnim ? 0 : 1,
+          cursor: hasContent ? (isDragging ? 'grabbing' : 'grab') : 'text',
+          transition: dropAnim ? 'all 0.4s cubic-bezier(0.4,0,0.2,1)' : 'none',
+        }}
+          onMouseDown={hasContent ? handleDragStart : undefined}
+          onTouchStart={hasContent ? handleDragStart : undefined}
+        >
+          <textarea
+            ref={textareaRef}
+            style={{
+              ...st.textarea,
+              width: TEXT_W,
+              pointerEvents: isDragging ? 'none' : 'auto',
+              fontSize: message.length > 500 ? '14px' : message.length > 200 ? '15px' : '16px',
+              cursor: hasContent ? 'grab' : 'text',
+            }}
+            value={message}
+            onChange={(e) => {
+              const val = e.target.value.slice(0, 1000);
+              setMessage(val);
+              e.target.style.height = 'auto';
+              e.target.style.height = Math.min(e.target.scrollHeight, window.innerHeight * 0.6) + 'px';
+            }}
+            onKeyDown={handleKeyDown}
+            onMouseDown={hasContent ? handleDragStart : undefined}
+            onTouchStart={hasContent ? handleDragStart : undefined}
+            placeholder="..."
+            autoFocus
+          />
+          {hasContent && !isDragging && (
+            <span style={st.dragHint}>{isMobile ? 'drag to slot ↑' : 'drag to slot'}</span>
+          )}
+          {mode === 'speak' && isListening && (
+            <span style={{ fontSize: '12px', color: '#e74c3c', marginTop: '8px' }}>● recording</span>
+          )}
+          {mode === 'speak' && !isListening && hasContent && (
+            <button
+              onClick={(e) => { e.stopPropagation(); startListening(); }}
+              style={{ fontSize: '12px', color: '#999', background: 'none', border: 'none', cursor: 'pointer', marginTop: '8px' }}
+            >tap to continue</button>
+          )}
+        </div>
+      )}
+
+      {mode === 'draw' && drawBounds && !isDragging && !dropAnim && strokes.length > 0 && isDrawingDone && (!hasPostedToday || isAdmin) && (
+        <div
+          data-text
+          style={{
+            position: 'fixed',
+            left: drawBounds.minX - 20,
+            top: drawBounds.minY - 20,
+            width: drawBounds.maxX - drawBounds.minX + 40,
+            height: drawBounds.maxY - drawBounds.minY + 60,
+            cursor: 'grab',
+            zIndex: 10,
+          }}
+          onMouseDown={handleDragStart}
+          onTouchStart={handleDragStart}
+        >
+          <span style={{
+            position: 'absolute', bottom: '0', left: '50%',
+            transform: 'translateX(-50%)', ...st.dragHint,
+          }}>{isMobile ? 'drag to slot ↑' : 'drag to slot'}</span>
+        </div>
+      )}
+
+      {(!hasPostedToday || isAdmin) && (
+        <div data-controls style={{ ...st.modeBar, bottom: isMobile ? '32px' : '56px' }}>
+          {['type', 'speak', 'draw'].map(m => (
+            <button key={m}
+              style={{
+                ...st.modeBtn,
+                ...(mode === m ? st.modeBtnActive : {}),
+                padding: isMobile ? '10px 20px' : '8px 18px',
+                fontSize: isMobile ? '13px' : '12px',
+              }}
+              onClick={(e) => { e.stopPropagation(); setMode(m); resetAll(); }}
+            >{m}</button>
+          ))}
+        </div>
+      )}
+
+      <footer style={{ ...st.footer, bottom: isMobile ? '90px' : '24px' }}>
+        <a href="/about" style={{
+          ...st.footerLink,
+          fontSize: isMobile ? '14px' : '12px',
+          padding: '8px',
+        }}>about</a>
+      </footer>
+
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500&display=swap');
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        html, body, #root { height: 100%; }
+        body { background: #fafafa; overflow: hidden; -webkit-tap-highlight-color: transparent; }
+        textarea:focus { outline: none; }
+        textarea::placeholder { color: #ccc; }
+        @keyframes dropFall {
+          0% { transform: translateY(0); opacity: 0.6; }
+          100% { transform: translateY(100vh); opacity: 0; }
+        }
+      `}</style>
+    </div>
+  );
+}
+
+const st = {
+  container: { height: '100vh', background: '#fafafa', fontFamily: '"Outfit", sans-serif', color: '#000', position: 'relative', userSelect: 'none', cursor: 'crosshair', touchAction: 'none' },
+  header: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '20px 24px', position: 'relative', zIndex: 5 },
+  headerLeft: { display: 'flex', alignItems: 'center', gap: '12px' },
+  headerRight: { display: 'flex', alignItems: 'center', gap: '12px' },
+  title: { fontSize: '18px', fontWeight: 500, letterSpacing: '-0.02em' },
+  counter: { fontSize: '12px', color: '#bbb', fontWeight: 300 },
+  streak: { fontSize: '12px', color: '#bbb', fontWeight: 300 },
+  slotWrapper: { position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', zIndex: 2 },
+  slot: { width: '200px', height: '2px', background: '#000', transition: 'all 0.25s ease' },
+  hint: { position: 'absolute', top: 'calc(50% + 20px)', left: '50%', transform: 'translateX(-50%)', fontSize: '13px', color: '#ccc', pointerEvents: 'none', zIndex: 2, fontWeight: 300, whiteSpace: 'nowrap' },
+  textWrapper: { position: 'fixed', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px', zIndex: 10 },
+  textarea: { minHeight: '24px', maxHeight: '60vh', padding: '0', border: 'none', background: 'transparent', fontFamily: '"Outfit", sans-serif', fontSize: '16px', fontWeight: 300, lineHeight: 1.6, color: '#000', resize: 'none', textAlign: 'center', overflow: 'hidden', wordWrap: 'break-word' },
+  dragHint: { fontSize: '11px', color: '#ccc', fontWeight: 300 },
+  modeBar: { position: 'absolute', bottom: '56px', left: '50%', transform: 'translateX(-50%)', display: 'flex', gap: '4px', background: '#f0f0f0', borderRadius: '20px', padding: '3px', zIndex: 5 },
+  modeBtn: { padding: '8px 18px', background: 'transparent', border: 'none', borderRadius: '18px', fontFamily: '"Outfit", sans-serif', fontSize: '12px', fontWeight: 400, color: '#999', cursor: 'pointer', transition: 'all 0.2s ease' },
+  modeBtnActive: { background: '#fff', color: '#000', boxShadow: '0 1px 4px rgba(0,0,0,0.08)' },
+  footer: { position: 'absolute', bottom: '24px', left: '0', right: '0', textAlign: 'center', fontSize: '11px', color: '#ddd', fontWeight: 300, pointerEvents: 'none' },
+  footerLink: { color: '#ccc', textDecoration: 'none', fontSize: '11px', fontWeight: 300, pointerEvents: 'auto' },
+  drawBtn: { padding: '4px 8px', fontSize: '13px', fontFamily: '"Outfit", sans-serif', fontWeight: 300, background: 'transparent', border: 'none', color: '#999', cursor: 'pointer' },
+};
