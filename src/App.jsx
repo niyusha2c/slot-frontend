@@ -377,15 +377,18 @@ export default function App() {
   const accent = month < 2 || month > 10 ? '#8aa4bf' : month < 5 ? '#7ab87a' : month < 8 ? '#e8c84a' : '#c47a4a';
 
   // Use visualViewport so we know the actual visible height (shrinks when keyboard opens)
-  const vvHeight = (typeof window !== 'undefined' && window.visualViewport)
-    ? window.visualViewport.height
-    : window.innerHeight;
-
   const half = TEXT_W / 2 + 2;
   const clampedX = pos ? Math.min(Math.max(pos.x, half), window.innerWidth - half) : 0;
-  // Allow text all the way down to 120px above the bottom of the visible viewport
-  // (clears the mode bar). Min 80px from top clears the header.
-  const clampedY = pos ? Math.min(Math.max(pos.y, 80), vvHeight - 120) : 0;
+  const clampedY = pos ? Math.min(Math.max(pos.y, 80), window.innerHeight - 160) : 0;
+
+
+
+
+
+
+
+
+
 
   return (
     <div
