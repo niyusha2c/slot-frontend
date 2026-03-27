@@ -384,7 +384,7 @@ export default function App() {
   const half = TEXT_W / 2 + 2; // minimal edge padding — lets box go near borders
   const clampedX = pos ? Math.min(Math.max(pos.x, half), window.innerWidth - half) : 0;
   // Keep text in top 55% of visible viewport so keyboard never covers it
-  const clampedY = pos ? Math.min(Math.max(pos.y, 80), vvHeight * 0.55) : 0;
+  const clampedY = pos ? Math.min(Math.max(pos.y, 80), window.innerHeight - 160) : 0;
 
   return (
     <div
