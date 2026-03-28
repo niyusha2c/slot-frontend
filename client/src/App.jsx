@@ -365,14 +365,18 @@ export default function App() {
   useEffect(() => {
     const vv = window.visualViewport;
     if (!vv) return;
-    const update = () => setVpOffset(vv.offsetTop);
-    vv.addEventListener('scroll', update);
-    vv.addEventListener('resize', update);
-    return () => {
-      vv.removeEventListener('scroll', update);
-      vv.removeEventListener('resize', update);
+    const update = () => {
+      const keyboardHeight = window.innerHeight - vv.height;
+      // Only shift page up if keyboard is open and we have a position below midpoint
+      if (keyboardHeight > 100 && position && position.y > window.innerHeight / 2) {
+        setPageOffset(-keyboardHeight);
+      } else {
+        setPageOffset(0);
+      }
     };
-  }, []);
+    vv.addEventListener('resize', update);
+    return () => vv.removeEventListener('resize', update);
+  }, [position]);
 
   const handleKeyDown = (e) => {
     if (e.key === 'Escape') {
@@ -401,7 +405,11 @@ export default function App() {
 
   return (
     <div
-      style={st.container}
+      style={{
+        ...st.container,
+        transform: `translateY(${pageOffset}px)`,
+        transition: 'transform 0.3s ease',
+      }}
       onClick={handleClick}
       onMouseDown={mode === 'draw' ? handleDrawStart : undefined}
       onMouseMove={mode === 'draw' && isDrawingStroke ? handleDrawMove : undefined}
