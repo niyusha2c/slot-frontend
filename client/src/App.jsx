@@ -1,5 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 
+const [vpOffset, setVpOffset] = useState(0);
+
 function useDropSound() {
   const ctxRef = useRef(null);
   const play = useCallback(() => {
@@ -360,6 +362,18 @@ export default function App() {
     if (mode === 'speak' && transcript) setMessage(transcript);
   }, [transcript, mode]);
 
+  useEffect(() => {
+    const vv = window.visualViewport;
+    if (!vv) return;
+    const update = () => setVpOffset(vv.offsetTop);
+    vv.addEventListener('scroll', update);
+    vv.addEventListener('resize', update);
+    return () => {
+      vv.removeEventListener('scroll', update);
+      vv.removeEventListener('resize', update);
+    };
+  }, []);
+
   const handleKeyDown = (e) => {
     if (e.key === 'Escape') {
       setPosition(null); setMessage(''); setStrokes([]);
@@ -466,7 +480,7 @@ export default function App() {
         <div data-text style={{
           ...st.textWrapper,
           left: clampedX,
-          top: clampedY,
+          top: clampedY + vpOffset,
           width: TEXT_W,
           transform: 'translate(-50%, 0)',
           opacity: dropAnim ? 0 : 1,
