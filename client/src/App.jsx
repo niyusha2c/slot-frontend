@@ -225,7 +225,9 @@ export default function App() {
     const p = getEventPos(e);
     const half = TEXT_W / 2 + 2;
     const cx = Math.min(Math.max(p.x, half), window.innerWidth - half);
-    setPosition({ x: cx, y: p.y });
+    // On mobile: always place text above the slot (35% from top) so keyboard never covers it
+    const cy = isMobile ? window.innerHeight * 0.35 : Math.min(Math.max(p.y, 80), window.innerHeight - 160);
+    setPosition({ x: cx, y: cy });
     setMessage('');
     if (mode === 'type') setTimeout(() => textareaRef.current?.focus(), 50);
     if (mode === 'speak') startListening();
@@ -391,9 +393,8 @@ export default function App() {
   const month = new Date().getMonth();
   const accent = month < 2 || month > 10 ? '#8aa4bf' : month < 5 ? '#7ab87a' : month < 8 ? '#e8c84a' : '#c47a4a';
 
-  // vpOffsetY compensates for iOS Safari shifting fixed elements when keyboard opens
   const textLeft = pos ? pos.x : 0;
-  const textTop = pos ? pos.y + vpOffsetY : 0;
+  const textTop = pos ? pos.y : 0;
 
   return (
     <div
