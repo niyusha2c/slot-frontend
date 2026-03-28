@@ -210,7 +210,7 @@ export default function App() {
     if (e.target.closest('[data-controls]')) return;
     if (mode === 'draw') return;
     const p = getEventPos(e);
-    setPosition({ ...p, screenH: window.innerHeight });
+    setPosition({ x: cx, y: cy });
     setMessage('');
     if (mode === 'type') setTimeout(() => textareaRef.current?.focus(), 50);
     if (mode === 'speak') startListening();
@@ -381,11 +381,9 @@ export default function App() {
     ? window.visualViewport.height
     : window.innerHeight;
 
-  const half = TEXT_W / 2 + 2; // minimal edge padding — lets box go near borders
-  const clampedX = pos ? Math.min(Math.max(pos.x, half), window.innerWidth - half) : 0;
-  const clampedY = pos?.screenH
-    ? Math.min(Math.max(pos.y, 80), pos.screenH - 160)
-    : pos ? Math.min(Math.max(pos.y, 80), window.innerHeight - 160) : 0;
+  const half = TEXT_W / 2 + 2;
+  const clampedX = pos ? pos.x : 0;
+  const clampedY = pos ? pos.y : 0;
 
   return (
     <div
