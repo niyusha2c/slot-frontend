@@ -1,7 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 
-const [vpOffset, setVpOffset] = useState(0);
-
 function useDropSound() {
   const ctxRef = useRef(null);
   const play = useCallback(() => {
@@ -149,7 +147,6 @@ function getEventPos(e) {
   return { x: e.clientX, y: e.clientY };
 }
 
-// Text box width in px — narrower on mobile so it can move freely on x axis
 const TEXT_W = 220;
 
 export default function App() {
@@ -163,6 +160,7 @@ export default function App() {
   const [isNearSlot, setIsNearSlot] = useState(false);
   const [streak, setStreak] = useState(0);
   const [isMobile, setIsMobile] = useState(false);
+  const [vpOffsetY, setVpOffsetY] = useState(0);
   const { transcript, isListening, isSupported, startListening, stopListening } = useSpeechRecognition();
   const [isAdmin, setIsAdmin] = useState(false);
 
@@ -199,6 +197,19 @@ export default function App() {
       .catch(() => {});
   }, []);
 
+  // Compensate for iOS Safari shifting fixed elements when keyboard opens
+  useEffect(() => {
+    const vv = window.visualViewport;
+    if (!vv) return;
+    const update = () => setVpOffsetY(vv.offsetTop);
+    vv.addEventListener('scroll', update);
+    vv.addEventListener('resize', update);
+    return () => {
+      vv.removeEventListener('scroll', update);
+      vv.removeEventListener('resize', update);
+    };
+  }, []);
+
   const computeDrawBounds = useCallback((allStrokes) => {
     const allPts = allStrokes.flat();
     if (!allPts.length) return null;
@@ -212,7 +223,9 @@ export default function App() {
     if (e.target.closest('[data-controls]')) return;
     if (mode === 'draw') return;
     const p = getEventPos(e);
-    setPosition({ x: cx, y: cy });
+    const half = TEXT_W / 2 + 2;
+    const cx = Math.min(Math.max(p.x, half), window.innerWidth - half);
+    setPosition({ x: cx, y: p.y });
     setMessage('');
     if (mode === 'type') setTimeout(() => textareaRef.current?.focus(), 50);
     if (mode === 'speak') startListening();
@@ -362,22 +375,6 @@ export default function App() {
     if (mode === 'speak' && transcript) setMessage(transcript);
   }, [transcript, mode]);
 
-  useEffect(() => {
-    const vv = window.visualViewport;
-    if (!vv) return;
-    const update = () => {
-      const keyboardHeight = window.innerHeight - vv.height;
-      // Only shift page up if keyboard is open and we have a position below midpoint
-      if (keyboardHeight > 100 && position && position.y > window.innerHeight / 2) {
-        setPageOffset(-keyboardHeight);
-      } else {
-        setPageOffset(0);
-      }
-    };
-    vv.addEventListener('resize', update);
-    return () => vv.removeEventListener('resize', update);
-  }, [position]);
-
   const handleKeyDown = (e) => {
     if (e.key === 'Escape') {
       setPosition(null); setMessage(''); setStrokes([]);
@@ -394,22 +391,13 @@ export default function App() {
   const month = new Date().getMonth();
   const accent = month < 2 || month > 10 ? '#8aa4bf' : month < 5 ? '#7ab87a' : month < 8 ? '#e8c84a' : '#c47a4a';
 
-  // Use visualViewport when available so keyboard height is accounted for
-  const vvHeight = (typeof window !== 'undefined' && window.visualViewport)
-    ? window.visualViewport.height
-    : window.innerHeight;
-
-  const half = TEXT_W / 2 + 2;
-  const clampedX = pos ? pos.x : 0;
-  const clampedY = pos ? pos.y : 0;
+  // vpOffsetY compensates for iOS Safari shifting fixed elements when keyboard opens
+  const textLeft = pos ? pos.x : 0;
+  const textTop = pos ? pos.y + vpOffsetY : 0;
 
   return (
     <div
-      style={{
-        ...st.container,
-        transform: `translateY(${pageOffset}px)`,
-        transition: 'transform 0.3s ease',
-      }}
+      style={st.container}
       onClick={handleClick}
       onMouseDown={mode === 'draw' ? handleDrawStart : undefined}
       onMouseMove={mode === 'draw' && isDrawingStroke ? handleDrawMove : undefined}
@@ -438,14 +426,8 @@ export default function App() {
           transform: 'translateX(-50%)',
           display: 'flex', gap: '16px', zIndex: 20,
         }}>
-          <button
-            onClick={() => { setStrokes([]); setDrawBounds(null); }}
-            style={st.drawBtn}
-          >clear</button>
-          <button
-            onClick={() => setIsDrawingDone(true)}
-            style={{ ...st.drawBtn, color: '#000' }}
-          >done</button>
+          <button onClick={() => { setStrokes([]); setDrawBounds(null); }} style={st.drawBtn}>clear</button>
+          <button onClick={() => setIsDrawingDone(true)} style={{ ...st.drawBtn, color: '#000' }}>done</button>
         </div>
       )}
 
@@ -487,8 +469,8 @@ export default function App() {
       {pos && (!hasPostedToday || isAdmin) && (mode === 'type' || mode === 'speak') && (
         <div data-text style={{
           ...st.textWrapper,
-          left: clampedX,
-          top: clampedY + vpOffset,
+          left: textLeft,
+          top: textTop,
           width: TEXT_W,
           transform: 'translate(-50%, 0)',
           opacity: dropAnim ? 0 : 1,
