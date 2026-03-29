@@ -210,7 +210,7 @@ export default function App() {
     if (e.target.closest('[data-controls]')) return;
     if (mode === 'draw') return;
     const p = getEventPos(e);
-    setPosition(p);
+    const half = TEXT_W / 2 + 2; const cx = Math.min(Math.max(p.x, half), window.innerWidth - half); const cy = isMobile ? window.innerHeight * 0.35 : Math.min(Math.max(p.y, 80), window.innerHeight - 160); setPosition({ x: cx, y: cy });
     setMessage('');
     if (mode === 'type') setTimeout(() => textareaRef.current?.focus(), 50);
     if (mode === 'speak') startListening();
