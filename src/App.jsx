@@ -378,8 +378,8 @@ export default function App() {
 
   // Use visualViewport so we know the actual visible height (shrinks when keyboard opens)
   const half = TEXT_W / 2 + 2;
-  const clampedX = pos ? Math.min(Math.max(pos.x, half), window.innerWidth - half) : 0;
-  const clampedY = pos ? Math.min(Math.max(pos.y, 80), window.innerHeight - 160) : 0;
+  const clampedX = pos ? pos.x : 0;
+  const clampedY = pos ? pos.y : 0;
 
 
 
